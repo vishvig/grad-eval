@@ -52,8 +52,8 @@ const onChange = (event) => {
   display: flex;
   align-items: center;
   padding: clamp($spacing-sm, 2vw, $spacing-md);
-  background: $background-light;
-  border: 2px solid $border-light;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
   border-radius: clamp($border-radius-sm, 2vw, $border-radius-md);
   cursor: pointer;
   transition: $transition-default;
@@ -63,9 +63,9 @@ const onChange = (event) => {
   @include hover-effect;
 
   &.selected {
-    background: $selected-bg;
-    border-color: $primary-color;
-    color: $primary-dark;
+    background: var(--selected-bg);
+    border-color: var(--primary-color);
+    color: var(--primary-dark);
     font-weight: 500;
   }
 
@@ -83,12 +83,12 @@ const onChange = (event) => {
   @include responsive-text(0.9rem, 1.1rem);
   text-align: left;
   width: 100%;
-  color: $text-secondary;
+  color: var(--color-text);
   padding-right: $spacing-xs;
 }
 
 .option-button.selected .option-text {
-  color: $primary-dark;
+  color: var(--primary-dark);
 }
 
 @media (hover: none) {

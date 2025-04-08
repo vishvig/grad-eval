@@ -124,7 +124,7 @@ const vClickOutside = {
   justify-content: space-between;
   align-items: center;
   padding: 0 clamp(1rem, 5vw, 2rem);
-  z-index: 100;
+  z-index: 2000;
 }
 
 .title-section {
@@ -249,7 +249,7 @@ const vClickOutside = {
   border-radius: $border-radius-md;
   box-shadow: 0 4px 6px var(--color-shadow);
   min-width: 220px;
-  z-index: 1000;
+  z-index: 2000;
   padding: 0.25rem 0;
 }
 

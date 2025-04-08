@@ -1,13 +1,13 @@
 <template>
   <div class="main-content">
-    <div class="intro-container">
-      <BaseCard class="intro-card">
-        <div class="intro-header">
-          <h1>Welcome to the Assessment</h1>
-          <p class="subtitle">Please read the following instructions carefully</p>
+    <div class="congrats-container">
+      <div class="congrats-card">
+        <div class="congrats-header">
+          <h1>🎉 Congratulations!</h1>
+          <p class="subtitle">You have successfully completed the MCQ section</p>
         </div>
-
-        <div class="intro-content">
+        
+        <div class="content-container">
           <div v-if="isLoading" class="loading">
             <p>Loading content...</p>
           </div>
@@ -17,29 +17,14 @@
           </div>
           <div v-else class="markdown-content" v-html="parsedContent"></div>
         </div>
-
-        <div class="acknowledgment-section">
-          <label class="checkbox-label">
-            <input 
-              type="checkbox" 
-              v-model="hasAcknowledged"
-              class="checkbox-input"
-            >
-            <span class="checkbox-text">I have read and understood all instructions</span>
-          </label>
-        </div>
-
+        
         <div class="button-container">
-          <button 
-            class="start-button" 
-            @click="proceedToQuiz"
-            :disabled="!hasAcknowledged || isStarting"
-          >
-            {{ isStarting ? 'Starting Assessment...' : 'Start Assessment' }}
-            <span class="arrow" v-if="!isStarting">→</span>
+          <button @click="goToCodingSection" class="next-button">
+            Go to Coding Section
+            <span class="arrow">→</span>
           </button>
         </div>
-      </BaseCard>
+      </div>
     </div>
   </div>
 </template>
@@ -47,16 +32,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import BaseCard from './common/BaseCard.vue'
-import { mcqService } from '@/services/api'
 import { markdownService } from '@/services/markdownService'
-import { useToast } from '@/composables/useToast'
 import MarkdownIt from 'markdown-it'
 
 const router = useRouter()
-const { addToast } = useToast()
-const hasAcknowledged = ref(false)
-const isStarting = ref(false)
 const isLoading = ref(true)
 const markdownContent = ref('')
 const error = ref(null)
@@ -72,27 +51,17 @@ const fetchContent = async () => {
   error.value = null
   
   try {
-    markdownContent.value = await markdownService.getMarkdownContent('/markdown/introduction.md')
+    markdownContent.value = await markdownService.getMarkdownContent('/markdown/congratulations.md')
   } catch (err) {
-    console.error('Failed to fetch introduction content:', err)
+    console.error('Failed to fetch congratulations content:', err)
     error.value = 'Failed to load content. Please try again.'
   } finally {
     isLoading.value = false
   }
 }
 
-const proceedToQuiz = async () => {
-  if (!hasAcknowledged.value || isStarting.value) return
-  
-  isStarting.value = true
-  try {
-    await mcqService.startAssessment()
-    router.push('/quiz')
-  } catch (error) {
-    addToast(error.message || 'Failed to start assessment', 'error')
-  } finally {
-    isStarting.value = false
-  }
+const goToCodingSection = () => {
+  router.push('/coding')
 }
 
 onMounted(() => {
@@ -106,50 +75,55 @@ onMounted(() => {
 
 .main-content {
   padding-top: 84px;
-  min-height: 100vh;
-  background: var(--color-background);
+  min-height: calc(100vh - 84px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-background);
 }
 
-.intro-container {
-  max-width: 900px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+.congrats-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
-.intro-card {
-  background: var(--color-surface);
+.congrats-card {
+  background-color: var(--color-surface);
   border-radius: 8px;
-  padding: 2.5rem;
-  box-shadow: 0 4px 6px var(--color-shadow);
-}
-
-.intro-header {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  padding: 3rem;
   text-align: center;
-  margin-bottom: 3rem;
+}
 
+.congrats-header {
+  margin-bottom: 2rem;
+  
   h1 {
-    color: var(--color-text);
-    font-size: clamp(1.5rem, 3vw, 2rem);
-    margin-bottom: 0.5rem;
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    margin-bottom: 1rem;
   }
-
+  
   .subtitle {
+    font-size: 1.25rem;
     color: var(--color-text-secondary);
-    font-size: 1.1rem;
   }
 }
 
-.intro-content {
+.content-container {
   margin-bottom: 2rem;
 }
 
 .markdown-content {
-  max-height: 400px;
+  max-height: 350px;
   overflow-y: auto;
   padding: 1rem;
   border-radius: 8px;
   background: var(--color-background);
   box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+  text-align: left;
   
   /* Add styling for markdown content */
   :deep(h1) {
@@ -179,11 +153,13 @@ onMounted(() => {
   :deep(ul), :deep(ol) {
     margin: 1rem 0;
     padding-left: 2rem;
+    text-align: left;
   }
   
   :deep(li) {
     margin-bottom: 0.5rem;
     line-height: 1.6;
+    text-align: left;
   }
   
   :deep(strong) {
@@ -239,100 +215,48 @@ onMounted(() => {
   }
 }
 
-.acknowledgment-section {
-  margin: 2rem 0;
-  padding: 1.5rem;
-  border-radius: 8px;
-  background: var(--color-background);
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  cursor: pointer;
-}
-
-.checkbox-input {
-  appearance: none;
-  width: 1.5rem;
-  height: 1.5rem;
-  background: var(--color-surface);
-  border: 2px solid var(--color-border);
-  border-radius: 4px;
-  position: relative;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:checked {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-    
-    &:after {
-      content: "✓";
-      color: white;
-      font-size: 1rem;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-  }
-}
-
-.checkbox-text {
-  color: var(--color-text);
-  font-weight: 500;
-}
-
 .button-container {
-  display: flex;
-  justify-content: center;
+  margin-top: 2rem;
 }
 
-.start-button {
-  padding: 0.75rem 2rem;
-  background: var(--color-primary);
+.next-button {
+  background-color: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
-  align-items: center;
   transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
   
-  &:hover:not(:disabled) {
-    background: var(--color-primary-dark);
-  }
-  
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+  &:hover {
+    background-color: var(--color-primary-dark);
   }
   
   .arrow {
     margin-left: 0.5rem;
-    font-size: 1.2rem;
+    font-size: 1.25rem;
   }
 }
 
 @media (max-width: 768px) {
-  .intro-container {
-    margin-top: 1rem;
+  .congrats-container {
+    padding: 1rem;
   }
   
-  .intro-card {
+  .congrats-card {
     padding: 1.5rem;
   }
   
-  .intro-header {
-    margin-bottom: 2rem;
+  .congrats-header h1 {
+    font-size: 2rem;
   }
   
   .markdown-content {
-    max-height: 350px;
+    max-height: 300px;
   }
 }
 </style> 

@@ -3,6 +3,7 @@ import AuthPage from '@/components/AuthPage.vue'
 import IntroductionPage from '@/components/IntroductionPage.vue'
 import MCQSection from '@/components/MCQSection.vue'
 import CodingTask from '@/components/CodingTask.vue'
+import CongratulationsPage from '@/components/CongratulationsPage.vue'
 
 const routes = [
   {
@@ -29,6 +30,15 @@ const routes = [
     meta: { 
       requiresAuth: true,
       title: 'MCQ Assessment - Grad Evaluator'
+    }
+  },
+  {
+    path: '/congratulations',
+    name: 'Congratulations',
+    component: CongratulationsPage,
+    meta: { 
+      requiresAuth: true,
+      title: 'Congratulations - Grad Evaluator'
     }
   },
   {

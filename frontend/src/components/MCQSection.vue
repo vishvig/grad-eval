@@ -180,22 +180,36 @@ const isLastQuestion = computed(() => currentIndex.value === 4) // 5th question
 const handleNext = async () => {
   try {
     await mcqService.submitAnswer(currentQuestion.value.id, selectedAnswers.value)
-    if (isLastQuestion.value) {
-      // Handle final submission
-      addToast('MCQ section completed successfully', 'success')
-      router.push('/coding')
+    const response = await mcqService.getNextQuestion()
+    console.log(response)
+    console.log(response.quizFinished)
+    console.log(response.value)
+    if (response.quizFinished) {
+      addToast('Quiz completed successfully', 'success')
+      router.push('/congratulations')
     } else {
-      // Get next question
-      const response = await mcqService.getNextQuestion()
-      if (response) {
-        addToast('Response recorded. Loading next question.', 'success')
-        
-        setTimeout(() => {
-          questions.value = [response]
-          selectedAnswers.value = []
-        }, 300)
-      }
+      addToast('Response recorded. Loading next question.', 'success')
+      setTimeout(() => {
+        questions.value = [response]
+        selectedAnswers.value = []
+      }, 300)
     }
+    // if (isLastQuestion.value) {
+    //   // Handle final submission
+    //   addToast('MCQ section completed successfully', 'success')
+    //   router.push('/congratulations') // Redirect to congratulations page instead of coding
+    // } else {
+    //   // Get next question
+    //   const response = await mcqService.getNextQuestion()
+    //   if (response) {
+    //     addToast('Response recorded. Loading next question.', 'success')
+        
+    //     setTimeout(() => {
+    //       questions.value = [response]
+    //       selectedAnswers.value = []
+    //     }, 300)
+    //   }
+    // }
   } catch (err) {
     console.error('Error:', err)
     const errorMessage = err.response?.data?.message || 'Failed to process request'

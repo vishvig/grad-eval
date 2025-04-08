@@ -172,8 +172,8 @@ onUnmounted(() => {
   right: 0;
   top: 84px;
   bottom: 0;
-  background: white;
-  border-left: 1px solid #ddd;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
@@ -235,7 +235,7 @@ onUnmounted(() => {
 .chat-header {
   padding: 12px 20px;
   background: var(--color-primary);
-  color: white;
+  color: var(--color-text);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -264,7 +264,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: calc(100% - 48px);
-  background: white;
+  background: var(--color-surface);
 }
 
 .chat-messages {
@@ -274,7 +274,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: #f8f9fa;
+  background: var(--color-background);
 }
 
 .message {
@@ -295,12 +295,12 @@ onUnmounted(() => {
 
 .message.system {
   align-self: flex-start;
-  background: white;
-  border: 1px solid #ddd;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 
 .thinking {
-  background: #f0f0f0 !important;
+  background: var(--color-background);
   border: none !important;
 }
 
@@ -333,41 +333,42 @@ onUnmounted(() => {
 
 .quick-actions {
   padding: 12px;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--color-border);
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  background: white;
+  background: var(--color-surface);
 }
 
 .quick-action-btn {
   padding: 6px 12px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
+  color: var(--color-text);
   transition: all 0.2s ease;
 }
 
 .quick-action-btn:hover {
-  background: #e9ecef;
+  background: var(--color-primary-dark);
   border-color: var(--color-primary);
 }
 
 .chat-input-container {
   padding: 12px;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--color-border);
   display: flex;
   gap: 8px;
-  background: white;
+  background: var(--color-surface);
   align-items: flex-end;
 }
 
 .chat-input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
   resize: none;
@@ -376,6 +377,8 @@ onUnmounted(() => {
   overflow-y: auto;
   line-height: 1.4;
   font-family: inherit;
+  background: var(--color-background);
+  color: var(--color-text);
 }
 
 .chat-input:focus {
