@@ -10,6 +10,6 @@ class ResponseStates:
 
 
 class Apis:
-    NEXT_QUESTION = "/next_question"
-    SUBMIT_RESPONSE = "/submit_response"
+    NEXT_QUESTION = "/next-question"
+    SUBMIT_RESPONSE = "/submit-response"
     START_ASSESSMENT = "/start-assessment"

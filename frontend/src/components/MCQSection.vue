@@ -148,9 +148,12 @@ const retryFetch = async () => {
 }
 
 const fetchQuestions = async () => {
+  const userId = localStorage.getItem('user_id') // Retrieve user ID from localStorage
   try {
-    const question = await mcqService.getNextQuestion()
-    questions.value = [question]
+    const response = await mcqService.getNextQuestion({
+      userId: userId // Send user ID in the request body
+    })
+    questions.value = [response]
     error.value = null // Clear any existing error
     addToast('Question loaded successfully', 'success')
   } catch (err) {
@@ -176,9 +179,9 @@ const isLastQuestion = computed(() => currentIndex.value === 4) // 5th question
 
 const handleNext = async () => {
   try {
+    await mcqService.submitAnswer(currentQuestion.value.id, selectedAnswers.value)
     if (isLastQuestion.value) {
       // Handle final submission
-      await mcqService.submitAnswer(currentQuestion.value.id, selectedAnswers.value)
       addToast('MCQ section completed successfully', 'success')
       router.push('/coding')
     } else {

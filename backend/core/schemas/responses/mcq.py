@@ -14,10 +14,12 @@ class MCQOption(BaseModel):
 
 
 class NextQuestionResponseModel(BaseModel):
-    id: str
-    text: str
-    options: List[MCQOption]
-    allowMultiple: bool
+    id: str = None
+    text: str = None
+    options: List[MCQOption] = list()
+    allowMultiple: bool = False
+    lastQuestion: bool = False
+    quizFinished: bool = False
 
 
 class NextQuestionResponse(DefaultResponse):

@@ -32,18 +32,24 @@ export const mcqService = {
 
   getNextQuestion: async () => {
     try {
-      const response = await axios.get(ROUTES.MCQ.NEXT_QUESTION)
+      const userId = localStorage.getItem('user_id') // Retrieve user ID from localStorage
+      console.log("Making a POST request to get next question")
+      const response = await axios.post(ROUTES.MCQ.NEXT_QUESTION, {
+        user_id: userId
+      })
       return response.data.body
     } catch (error) {
       handleError(error)
     }
   },
 
-  submitAnswer: async (questionId, selectedAnswers) => {
+  submitAnswer: async (question_id, selected_answers) => {
     try {
+      const user_id = localStorage.getItem('user_id')
       return await axios.post(ROUTES.MCQ.SUBMIT_ANSWER, {
-        questionId,
-        selectedAnswers
+        question_id,
+        selected_answers,
+        user_id
       })
     } catch (error) {
       handleError(error)

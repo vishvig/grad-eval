@@ -46,6 +46,7 @@ class AssessmentHandler:
                 question_id VARCHAR(255),
                 start_time TIMESTAMP,
                 end_time TIMESTAMP,
+                status VARCHAR(255),
                 correct_response JSONB,
                 user_response JSONB
             );
@@ -57,7 +58,7 @@ class AssessmentHandler:
             logger.error(f"Error creating schema/table: {str(e)}")
             raise
 
-    def start_assessment(self, user_id: str) -> List[Dict]:
+    def start_assessment(self, user_id: str) -> bool:
         """
         Start a new assessment for a user or return active assessment questions
         
@@ -125,7 +126,7 @@ class AssessmentHandler:
             current_time = datetime.utcnow()
             insert_query = """
             INSERT INTO transactions.mcq_transactions (
-                transaction_id, user_id, question_id, start_time, correct_response
+                transaction_id, user_id, question_id, start_time, status, correct_response
             ) VALUES %s
             """
             
@@ -142,7 +143,8 @@ class AssessmentHandler:
                     str(transaction_id),
                     user_id,
                     str(question["_id"]),
-                    current_time,
+                    None,
+                    'pending',
                     json.dumps(correct_answer)  # Convert list to JSON string for JSONB
                 ))
             
@@ -157,14 +159,9 @@ class AssessmentHandler:
                 {"$set": {"started_assessment": True}}
             )
             logger.debug(f"Updated assessment status for user {user_id}")
-            
-            # Remove sensitive data from questions before returning
-            for question in questions:
-                question.pop("correct_answer", None)  # Remove correct answer
-                question["_id"] = str(question["_id"])  # Convert ObjectId to string
-            
+
             logger.debug("Assessment setup completed successfully")
-            return questions
+            return True
             
         except ValueError as ve:
             logger.warning(f"Validation error in start_assessment: {str(ve)}")

@@ -10,13 +10,13 @@ router_auth = APIRouter(prefix="/auth")
 
 
 @router_auth.post("/verify",
-                 response_model=res_auth.AuthResponse)
+                  response_model=res_auth.AuthResponse)
 async def verify_auth(request: req_auth.GitlabAuthRequest):
     """Verify user authentication and captcha"""
     try:
         logger.debug(f"Received authentication request for user: {request.full_name}")
         auth_handler = AuthHandler()
-        
+
         try:
             logger.debug("Initiating authentication verification")
             is_authenticated, user_id, error_message = auth_handler.verify_gitlab_auth(
@@ -32,7 +32,7 @@ async def verify_auth(request: req_auth.GitlabAuthRequest):
                 status_code=400,
                 detail=str(ve)
             )
-        
+
         if is_authenticated:
             logger.debug(f"Authentication successful for user_id: {user_id}")
             return res_auth.AuthResponse(
@@ -49,7 +49,7 @@ async def verify_auth(request: req_auth.GitlabAuthRequest):
                 status_code=401,
                 detail=error_message or "Invalid credentials"
             )
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -61,14 +61,14 @@ async def verify_auth(request: req_auth.GitlabAuthRequest):
 
 
 @router_auth.get("/captcha",
-                response_model=res_auth.CaptchaResponse)
+                 response_model=res_auth.CaptchaResponse)
 async def generate_captcha():
     """Generate a new captcha image"""
     try:
         logger.debug("Generating new captcha")
         captcha_handler = CaptchaHandler()
         captcha_data = captcha_handler.generate_captcha()
-        
+
         logger.debug(f"Captcha generated successfully with session ID: {captcha_data['session_id']}")
         return res_auth.CaptchaResponse(
             status=constants.ResponseStates.SUCCESS,
@@ -78,10 +78,10 @@ async def generate_captcha():
                 "image": captcha_data["image"]
             }
         )
-            
+
     except Exception as e:
         logger.exception(f"Error generating captcha: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="Internal server error while generating captcha"
-        ) 
+        )

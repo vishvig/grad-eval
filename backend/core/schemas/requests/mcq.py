@@ -2,9 +2,14 @@ from pydantic import BaseModel
 from typing import List
 
 
+class NextQuestion(BaseModel):
+    user_id: str
+
+
 class AnswerSubmission(BaseModel):
-    questionId: str
-    selectedAnswers: List[str]
+    user_id: str
+    question_id: str
+    selected_answers: List[str]
 
 
 class StartAssessmentRequest(BaseModel):

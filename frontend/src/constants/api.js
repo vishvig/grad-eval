@@ -14,8 +14,8 @@ export const BASE_URL = getEnvVar('VITE_API_BASE_URL', 'http://localhost:3000')
 // API Routes
 export const ROUTES = {
   MCQ: {
-    NEXT_QUESTION: `${BASE_URL}/mcq/next_question`,
-    SUBMIT_ANSWER: `${BASE_URL}/api/submit-answer`,
+    NEXT_QUESTION: `${BASE_URL}/mcq/next-question`,
+    SUBMIT_ANSWER: `${BASE_URL}/mcq/submit-response`,
     START_ASSESSMENT: `${BASE_URL}/mcq/start-assessment`
   },
   AUTH: {
