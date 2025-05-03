@@ -3,8 +3,8 @@
     <div class="congrats-container">
       <div class="congrats-card">
         <div class="congrats-header">
-          <h1>🎉 Congratulations!</h1>
-          <p class="subtitle">You have successfully completed the MCQ section</p>
+          <h1>Congratulations!</h1>
+          <p class="subtitle">You have successfully completed the assessment</p>
         </div>
         
         <div class="content-container">
@@ -19,8 +19,8 @@
         </div>
         
         <div class="button-container">
-          <button @click="goToCodingSection" class="next-button">
-            Go to Coding Section
+          <button @click="finishAssessment" class="finish-button">
+            Finish Assessment
             <span class="arrow">→</span>
           </button>
         </div>
@@ -33,6 +33,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { markdownService } from '@/services/markdownService'
+import { authService } from '@/services/api'
 import MarkdownIt from 'markdown-it'
 
 const router = useRouter()
@@ -60,8 +61,11 @@ const fetchContent = async () => {
   }
 }
 
-const goToCodingSection = () => {
-  router.push('/coding')
+const finishAssessment = () => {
+  // Clear user data and logout
+  authService.clearUserData()
+  // Redirect to login page
+  router.push('/')
 }
 
 onMounted(() => {
@@ -219,7 +223,7 @@ onMounted(() => {
   margin-top: 2rem;
 }
 
-.next-button {
+.finish-button {
   background-color: var(--color-primary);
   color: white;
   border: none;

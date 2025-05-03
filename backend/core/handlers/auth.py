@@ -1,5 +1,5 @@
 from datetime import datetime
-from utils.gitlab_utility import GitlabClient
+# from utils.gitlab_utility import GitlabClient
 from utils.mongo_utility import MongoDBClient
 from utils.logger_utility import logger
 from constants.configurations import (
@@ -28,7 +28,7 @@ class AuthHandler:
             logger.error(f"Failed to initialize Auth handler: {str(e)}")
             raise
 
-    def verify_gitlab_auth(self, full_name: str, token: str, captcha_session_id: str, captcha_text: str) -> Tuple[bool, Union[str, None], Optional[str]]:
+    def verify_gitlab_auth(self, full_name: str, token: str, captcha_session_id: str, captcha_text: str) -> Tuple[bool, Union[str, None], Optional[str], Optional[Dict]]:
         """
         Verify user authentication with Gitlab and validate captcha
         
@@ -39,10 +39,11 @@ class AuthHandler:
             captcha_text (str): User's input for captcha verification
             
         Returns:
-            Tuple[bool, Union[str, None], Optional[str]]: (is_authenticated, user_id, error_message)
+            Tuple[bool, Union[str, None], Optional[str], Optional[Dict]]: (is_authenticated, user_id, error_message, assessment_info)
                 - is_authenticated: True if authentication successful, False otherwise
                 - user_id: User's ID if authentication successful, None otherwise
                 - error_message: None if successful, otherwise contains the specific error message
+                - assessment_info: Dict containing assessment status and start time if available
             
         Raises:
             ValueError: If captcha verification fails
@@ -74,7 +75,7 @@ class AuthHandler:
                     logger.warning(f"Error response: {json.dumps(error_details, indent=2)}")
                 except:
                     logger.warning(f"Raw error response: {response.text}")
-                return False, None, "Invalid token or API error"
+                return False, None, "Invalid token or API error", None
             
             # Get user info and verify name
             user_data = response.json()
@@ -87,55 +88,68 @@ class AuthHandler:
             if api_full_name != provided_full_name:
                 logger.warning(f"Name mismatch - API: '{api_full_name}', Provided: '{provided_full_name}'")
                 error_msg = f"The provided name '{full_name}' does not match the name '{user_data.get('name')}' associated with this token"
-                return False, None, error_msg
+                return False, None, error_msg, None
                 
-            # Store user details
+            # Store user details and get assessment info
             logger.debug("Authentication successful, updating user details")
-            self._update_user_details(user_data)
+            assessment_info = self._update_user_details(user_data)
             
-            # Return success with user_id
+            # Return success with user_id and assessment info
             user_id = str(user_data.get("id"))
-            return True, user_id, None
+            return True, user_id, None, assessment_info
             
         except ValueError as ve:
             # Re-raise captcha validation errors
             raise
         except Exception as e:
             logger.error(f"Error during authentication: {str(e)}", exc_info=True)
-            return False, None, "An unexpected error occurred during authentication"
+            return False, None, "An unexpected error occurred during authentication", None
 
-    def _update_user_details(self, user_details: dict):
-        """Update or insert user details in the database"""
+    def _update_user_details(self, user_data: Dict) -> Dict:
+        """Update user details in MongoDB and return assessment info"""
         try:
-            user_id = user_details.get("id")
-            if not user_id:
-                logger.warning("No user ID found in user details")
-                return
-                
+            user_id = int(user_data.get("id"))
             logger.debug(f"Updating details for user ID: {user_id}")
             
-            # Check if user exists and get current assessment status
-            existing_user = self.user_collection.find_one({"user_id": user_id})
-            started_assessment = False if existing_user is None else existing_user.get("started_assessment", False)
+            # Get existing user data
+            existing_user = self.user_collection.find_one({"user_id": int(user_id)})
             
-            # Prepare user details with assessment status
-            user_details["last_login"] = datetime.utcnow()
-            user_details["user_id"] = user_id
-            user_details["started_assessment"] = started_assessment
+            # Get assessment status and start time
+            assessment_info = {
+                "status": False,
+                "start_time": None
+            }
+            if existing_user:
+                logger.debug(f"User {user_id} found in database. Fetching assessment status.")
+                started_assessment = existing_user.get("started_assessment", dict())
+                assessment_info["status"] = started_assessment.get("status", False)
+                assessment_info["start_time"] = started_assessment.get("start_time", None)
             
-            logger.debug(f"Setting started_assessment to {started_assessment} for user {user_id}")
-            
-            # Update or insert user details
-            result = self.user_collection.update_one(
+            # Update user details
+            update_result = self.user_collection.update_one(
                 {"user_id": user_id},
-                {"$set": user_details},
+                {
+                    "$set": {
+                        "name": user_data.get("name"),
+                        "username": user_data.get("username"),
+                        "email": user_data.get("email"),
+                        "last_login": datetime.utcnow()
+                    },
+                    "$setOnInsert": {
+                        "started_assessment.status": False,
+                        "started_assessment.assessment_start_time": None
+                    }
+                },
                 upsert=True
             )
-            logger.debug(f"User details update result - Modified: {result.modified_count}, Upserted: {bool(result.upserted_id)}")
+            
+            logger.debug(f"User details update result - Modified: {update_result.modified_count}, Upserted: {update_result.upserted_id is not None}")
+            
+            return assessment_info
             
         except Exception as e:
-            logger.error(f"Error updating user details: {str(e)}", exc_info=True)
-            raise
+            logger.error(f"Error updating user details: {str(e)}")
+            return {"status": False, "start_time": None}
 
     async def verify_token(self, token: str):
         try:
@@ -149,4 +163,4 @@ class AuthHandler:
                 # Include other necessary user data
             }
         except Exception as e:
-            raise AuthenticationError(str(e)) 
+            raise AuthenticationError(str(e))

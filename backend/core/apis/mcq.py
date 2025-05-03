@@ -91,7 +91,10 @@ async def start_assessment(request: req_mcq.StartAssessmentRequest):
 
         logger.debug(f"Starting assessment for user: {request.user_id}")
         assessment_handler = AssessmentHandler()
-        assessment_handler.start_assessment(request.user_id)
+        assessment_handler.start_assessment(
+            user_id=request.user_id,
+            start_epoch=request.start_epoch
+        )
 
         return res_mcq.StartAssessmentResponse(
             status=constants.ResponseStates.SUCCESS,

@@ -19,12 +19,24 @@ async def verify_auth(request: req_auth.GitlabAuthRequest):
 
         try:
             logger.debug("Initiating authentication verification")
-            is_authenticated, user_id, error_message = auth_handler.verify_gitlab_auth(
+            is_authenticated, user_id, error_message, assessment_info = auth_handler.verify_gitlab_auth(
                 full_name=request.full_name,
                 token=request.token,
                 captcha_session_id=request.captcha_session_id,
                 captcha_text=request.captcha_text
             )
+            # is_authenticated = True
+            # user_id = 753
+            # error_message = None
+            # user_data = {"id": user_id,
+            #              "name": "Vignesh Ravishankar",
+            #              "username": "Vignesh.Ravishankar1",
+            #              "email": "vignesh.ravishankar@rockwellautomation.com"}
+            # assessment_info = auth_handler._update_user_details(user_data)
+            # assessment_info = {
+            #     "status": True,
+            #     "start_time": 1745780177981
+            # }
         except ValueError as ve:
             # Handle captcha validation errors
             logger.warning(f"Captcha validation failed: {str(ve)}")
@@ -40,7 +52,9 @@ async def verify_auth(request: req_auth.GitlabAuthRequest):
                 message="Authentication successful",
                 body={
                     "authenticated": True,
-                    "user_id": user_id
+                    "user_id": user_id,
+                    "assessment_status": assessment_info["status"],
+                    "assessment_start_time": assessment_info["start_time"]
                 }
             )
         else:

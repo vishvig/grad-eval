@@ -4,6 +4,7 @@ import IntroductionPage from '@/components/IntroductionPage.vue'
 import MCQSection from '@/components/MCQSection.vue'
 import CodingTask from '@/components/CodingTask.vue'
 import CongratulationsPage from '@/components/CongratulationsPage.vue'
+import TimeExpiredPage from '@/components/TimeExpiredPage.vue'
 
 const routes = [
   {
@@ -11,7 +12,7 @@ const routes = [
     name: 'Auth',
     component: AuthPage,
     meta: { 
-      title: 'Login - Grad Evaluator'
+      title: 'Login - ThinkGrade'
     }
   },
   {
@@ -20,7 +21,7 @@ const routes = [
     component: IntroductionPage,
     meta: { 
       requiresAuth: true,
-      title: 'Introduction - Grad Evaluator'
+      title: 'Introduction - ThinkGrade'
     }
   },
   {
@@ -29,7 +30,7 @@ const routes = [
     component: MCQSection,
     meta: { 
       requiresAuth: true,
-      title: 'MCQ Assessment - Grad Evaluator'
+      title: 'MCQ Assessment - ThinkGrade'
     }
   },
   {
@@ -38,7 +39,7 @@ const routes = [
     component: CongratulationsPage,
     meta: { 
       requiresAuth: true,
-      title: 'Congratulations - Grad Evaluator'
+      title: 'Congratulations - ThinkGrade'
     }
   },
   {
@@ -47,7 +48,16 @@ const routes = [
     component: CodingTask,
     meta: { 
       requiresAuth: true,
-      title: 'Coding Challenge - Grad Evaluator'
+      title: 'Coding Challenge - ThinkGrade'
+    }
+  },
+  {
+    path: '/time-expired',
+    name: 'TimeExpired',
+    component: TimeExpiredPage,
+    meta: { 
+      requiresAuth: true,
+      title: 'Time Expired - ThinkGrade'
     }
   }
 ]
@@ -59,18 +69,35 @@ const router = createRouter({
 
 // Navigation guards
 router.beforeEach((to, from, next) => {
-  // Update document title
-  document.title = to.meta.title || 'Grad Evaluator'
+  const isAuthenticated = localStorage.getItem('user_id')
+  const assessmentStarted = localStorage.getItem('assessment_status') === 'true'
   
-  // Auth check
-  const token = localStorage.getItem('auth_token')
-  if (to.meta.requiresAuth && !token) {
-    next('/')
-  } else if (to.path === '/' && token) {
-    next('/introduction')
-  } else {
-    next()
+  // If trying to access auth page while authenticated
+  if (to.name === 'auth' && isAuthenticated) {
+    if (assessmentStarted) {
+      next('/coding') // Go directly to coding if assessment was started
+    } else {
+      next('/introduction') // Show introduction if assessment not started
+    }
+    return
   }
+  
+  // If not authenticated and trying to access protected route
+  if (!isAuthenticated && to.meta.requiresAuth) {
+    next('/')
+    return
+  }
+  
+  // If authenticated and trying to access introduction
+  if (to.name === 'introduction' && assessmentStarted) {
+    next('/coding') // Skip introduction if assessment was started
+    return
+  }
+  
+  // Update document title
+  document.title = to.meta.title || 'ThinkGrade'
+  
+  next()
 })
 
 export default router 

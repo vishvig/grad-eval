@@ -1,14 +1,14 @@
 <template>
   <header class="title-bar">
     <div class="title-section">
-      <h1>Grad Evaluator</h1>
+      <h1>ThinkGrade</h1>
       <span class="page-subtitle" v-if="pageSubtitle">{{ pageSubtitle }}</span>
     </div>
     <div class="status-section">
       <div v-if="showTimer" class="timer" :class="{ 'timer--paused': isPaused }">
         <span class="timer__icon">{{ isPaused ? '⏸️' : '⏱️' }}</span>
         <span class="timer__text">
-          {{ isPaused ? 'Timer Paused: ' : 'Time Left: ' }}{{ formattedTime }}
+          {{ isPaused ? 'Paused - ' : '' }}{{ formattedTime }}
         </span>
       </div>
       
@@ -59,7 +59,7 @@ const isDropdownOpen = ref(false)
 const username = ref('')
 const isDarkTheme = ref(document.documentElement.getAttribute('data-theme') === 'dark')
 
-const showTimer = computed(() => route.name === 'Quiz')
+const showTimer = computed(() => ['Quiz', 'Coding'].includes(route.name))
 
 // Compute page subtitle based on current route
 const pageSubtitle = computed(() => {
@@ -166,6 +166,7 @@ const vClickOutside = {
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
+  min-width: 140px;
 
   &--paused {
     background: var(--color-surface);
@@ -176,6 +177,7 @@ const vClickOutside = {
   &__icon {
     display: inline-flex;
     align-items: center;
+    margin-right: 0.25rem;
   }
 
   &__text {

@@ -80,7 +80,7 @@ class PostgresClient:
                 logger.debug(f"Query parameters: {params}")
                 
             with self.conn.cursor() as cursor:
-                cursor.execute(query, params)
+                cursor.execute(query)
                 result = cursor.fetchone()
                 logger.debug(f"Fetch one result: {result}")
                 return result

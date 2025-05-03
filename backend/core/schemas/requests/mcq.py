@@ -14,3 +14,4 @@ class AnswerSubmission(BaseModel):
 
 class StartAssessmentRequest(BaseModel):
     user_id: str
+    start_epoch: int  # Epoch time when assessment started

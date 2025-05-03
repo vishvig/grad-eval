@@ -1,11 +1,11 @@
 from pydantic import BaseModel
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 
 class AuthResponse(BaseModel):
     status: str
     message: str
-    body: Optional[Dict] = None
+    body: Dict[str, Any]  # Will contain authenticated, user_id, assessment_status, and assessment_start_time
 
 
 class CaptchaResponse(BaseModel):

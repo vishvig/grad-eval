@@ -48,7 +48,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseCard from './common/BaseCard.vue'
-import { mcqService } from '@/services/api'
+// import { mcqService } from '@/services/api'
 import { markdownService } from '@/services/markdownService'
 import { useToast } from '@/composables/useToast'
 import MarkdownIt from 'markdown-it'
@@ -86,8 +86,8 @@ const proceedToQuiz = async () => {
   
   isStarting.value = true
   try {
-    await mcqService.startAssessment()
-    router.push('/quiz')
+    // await mcqService.startAssessment()
+    router.push('/coding')
   } catch (error) {
     addToast(error.message || 'Failed to start assessment', 'error')
   } finally {

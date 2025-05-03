@@ -16,8 +16,9 @@
       <div class="chat-messages" ref="messagesContainer">
         <div v-for="(message, index) in messages" 
              :key="index" 
-             :class="['message', message.type]">
-          {{ message.content }}
+             :class="['message', message.type, { 'error': message.isError }]">
+          <div v-if="message.isMarkdown" v-html="md.render(message.content)" class="markdown-content"></div>
+          <div v-else>{{ message.content }}</div>
         </div>
         
         <!-- Thinking Loader -->
@@ -30,7 +31,8 @@
         </div>
       </div>
 
-      <div class="quick-actions">
+      <!-- Quick actions hidden but code preserved -->
+      <div class="quick-actions" style="display: none;">
         <button 
           v-for="action in quickActions" 
           :key="action"
@@ -57,7 +59,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue'
+import MarkdownIt from 'markdown-it'
+import axios from 'axios'
+import { ROUTES } from '@/constants/api'
+import { useToast } from '@/composables/useToast'
+
+const md = new MarkdownIt()
+const { addToast } = useToast()
 
 const isMinimized = ref(false)
 const userInput = ref('')
@@ -106,15 +115,42 @@ const sendMessage = async () => {
   isThinking.value = true
   await scrollToBottom()
   
-  // Simulate response (replace with actual API call)
-  setTimeout(() => {
-    isThinking.value = false
+  try {
+    // Get user_id and question_id from localStorage/sessionStorage
+    const userId = localStorage.getItem('user_id')
+    const questionId = sessionStorage.getItem('question_id')
+
+    if (!userId || !questionId) {
+      throw new Error('Missing user or question information')
+    }
+
+    // Make API call
+    const response = await axios.post(ROUTES.CHAT.CHAT, {
+      user_id: userId,
+      question_id: questionId,
+      prompt: userMessage
+    })
+
+    // Add system response with markdown rendering
     messages.value.push({
       type: 'system',
-      content: `Response to: ${userMessage}`
+      content: response.data.response,
+      isMarkdown: true
     })
-    scrollToBottom()
-  }, 1500)
+
+    addToast('Response received', 'success')
+  } catch (err) {
+    console.error('Error sending message:', err)
+    addToast('Failed to send message', 'error')
+    messages.value.push({
+      type: 'system',
+      content: 'Sorry, I encountered an error. Please try again.',
+      isError: true
+    })
+  } finally {
+    isThinking.value = false
+    await scrollToBottom()
+  }
 }
 
 const handleQuickAction = (action) => {
@@ -152,12 +188,26 @@ const stopResize = () => {
   document.removeEventListener('mouseup', stopResize)
 }
 
+// Watch for chat reload trigger
+watch(() => sessionStorage.getItem('chat_reload_trigger'), (newValue, oldValue) => {
+  // Only reload if the value has actually changed and is not null
+  if (newValue && newValue !== oldValue) {
+    console.log('Chat reload triggered')
+    messages.value = []
+    nextTick(() => {
+      messages.value = [{
+        type: 'system',
+        content: 'Hello! How can I help you with your assessment?',
+        isMarkdown: true
+      }]
+      scrollToBottom()
+    })
+  }
+}, { immediate: true })
+
 onMounted(() => {
   document.documentElement.style.setProperty('--chat-width', `${width.value}px`)
-  messages.value.push({
-    type: 'system',
-    content: 'Hello! How can I help you with your assessment?'
-  })
+  // Remove the initial message push since the watcher will handle it
 })
 
 onUnmounted(() => {
@@ -400,5 +450,45 @@ onUnmounted(() => {
 
 .send-button:hover {
   background: var(--color-primary-dark);
+}
+
+.markdown-content {
+  width: 100%;
+}
+
+.markdown-content :deep(p) {
+  margin: 0.5em 0;
+}
+
+.markdown-content :deep(code) {
+  background: var(--color-background);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.markdown-content :deep(pre) {
+  background: var(--color-background);
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.markdown-content :deep(ul), 
+.markdown-content :deep(ol) {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.markdown-content :deep(blockquote) {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.message.error {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid #f44336;
 }
 </style> 

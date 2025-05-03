@@ -3,6 +3,10 @@
     <div class="quiz-container" :class="{ 'chat-minimized': isChatMinimized }">
       <div class="quiz-layout">
         <div class="quiz-main" :class="{ 'chat-minimized': isChatMinimized }">
+          <div class="timer-header">
+            <CountdownTimer :time="formattedTime" />
+          </div>
+          
           <ErrorPage
             v-if="error"
             :message="error"
@@ -46,99 +50,51 @@ import MCQQuestion from './MCQQuestion.vue'
 import ErrorPage from './ErrorPage.vue'
 import { mcqService } from '@/services/api'
 import { useToast } from '@/composables/useToast'
+import { useTimer } from '@/composables/useTimer'
 import { useRouter } from 'vue-router'
 import ChatInterface from '@/components/ChatInterface.vue'
+import CountdownTimer from '@/components/common/CountdownTimer.vue'
 
 const { addToast } = useToast()
 const router = useRouter()
+
+// Use the timer composable
+const { 
+  formattedTime, 
+  initializeTimer, 
+  startTimer, 
+  pauseTimer, 
+  resumeTimer, 
+  stopTimer
+} = useTimer()
 
 const questions = ref([])
 const currentIndex = ref(0)
 const selectedAnswers = ref([])
 const quizCompleted = ref(false)
 const error = ref(null)
-const timerPaused = ref(false)
 const isChatMinimized = ref(false)
-
-const DEFAULT_TIMER = 300 // 5 minutes in seconds
-const TIMER_STORAGE_KEY = 'quiz_timer_value'
-
-// Initialize timer value from env or default
-const timerValue = (() => {
-  try {
-    const envValue = import.meta.env?.VITE_QUIZ_TIMER_SECONDS
-    const parsedValue = envValue ? parseInt(envValue) : DEFAULT_TIMER
-    return Math.max(parsedValue, 0) // Ensure non-negative value
-  } catch (error) {
-    console.warn('Failed to read environment variable, using default timer:', DEFAULT_TIMER)
-    return DEFAULT_TIMER
-  }
-})()
-
-// Initialize timeLeft with stored value or default
-const timeLeft = ref(() => {
-  const storedValue = localStorage.getItem(TIMER_STORAGE_KEY)
-  if (storedValue) {
-    const parsedValue = parseInt(storedValue)
-    return parsedValue > 0 ? parsedValue : timerValue
-  }
-  return timerValue
-})
-
-// Update timer storage on changes
-watch(timeLeft, (newValue) => {
-  if (newValue > 0) {
-    localStorage.setItem(TIMER_STORAGE_KEY, newValue.toString())
-  } else {
-    localStorage.removeItem(TIMER_STORAGE_KEY)
-  }
-})
-
-const currentQuestion = computed(() => questions.value[currentIndex.value])
 
 // Watch error state to pause/resume timer
 watch(error, (newError) => {
-  timerPaused.value = !!newError
-  emit('timer-state-change', timerPaused.value)
+  if (newError) {
+    pauseTimer()
+  } else {
+    resumeTimer()
+  }
 })
 
-const updateFormattedTime = () => {
-  const value = Math.max(timeLeft.value, 0) // Ensure non-negative value
-  const minutes = Math.floor(value / 60)
-  const seconds = value % 60
-  emit('time-update', `${minutes}:${seconds.toString().padStart(2, '0')}`)
-}
+const emit = defineEmits(['quiz-completed'])
 
-const emit = defineEmits(['time-update', 'quiz-completed', 'timer-state-change'])
-
-let timer = null
-
-const startTimer = () => {
-  if (timer) clearInterval(timer)
-  
-  // Ensure initial value is positive
-  if (timeLeft.value <= 0) {
-    timeLeft.value = timerValue
-  }
-  
-  updateFormattedTime() // Initial update
-  
-  timer = setInterval(() => {
-    if (!timerPaused.value && timeLeft.value > 0) {
-      timeLeft.value = timeLeft.value - 1
-      updateFormattedTime()
-      
-      if (timeLeft.value <= 0) {
-        clearInterval(timer)
-        completeQuiz()
-      }
-    }
-  }, 1000)
-}
+const currentQuestion = computed(() => questions.value[currentIndex.value])
 
 // Start timer when component mounts
 onMounted(async () => {
   await fetchQuestions()
+  
+  // Initialize the timer - if this is the first screen of the assessment,
+  // this will record the start time
+  initializeTimer()
   startTimer()
 })
 
@@ -148,11 +104,8 @@ const retryFetch = async () => {
 }
 
 const fetchQuestions = async () => {
-  const userId = localStorage.getItem('user_id') // Retrieve user ID from localStorage
   try {
-    const response = await mcqService.getNextQuestion({
-      userId: userId // Send user ID in the request body
-    })
+    const response = await mcqService.getNextQuestion()
     questions.value = [response]
     error.value = null // Clear any existing error
     addToast('Question loaded successfully', 'success')
@@ -168,10 +121,10 @@ const updateSelectedAnswers = (answers) => {
   selectedAnswers.value = answers
 }
 
+// eslint-disable-next-line no-unused-vars
 const completeQuiz = () => {
-  clearInterval(timer)
+  stopTimer()
   quizCompleted.value = true
-  localStorage.removeItem(TIMER_STORAGE_KEY) // Clear timer on quiz completion
   emit('quiz-completed')
 }
 
@@ -181,9 +134,7 @@ const handleNext = async () => {
   try {
     await mcqService.submitAnswer(currentQuestion.value.id, selectedAnswers.value)
     const response = await mcqService.getNextQuestion()
-    console.log(response)
-    console.log(response.quizFinished)
-    console.log(response.value)
+    
     if (response.quizFinished) {
       addToast('Quiz completed successfully', 'success')
       router.push('/congratulations')
@@ -194,22 +145,6 @@ const handleNext = async () => {
         selectedAnswers.value = []
       }, 300)
     }
-    // if (isLastQuestion.value) {
-    //   // Handle final submission
-    //   addToast('MCQ section completed successfully', 'success')
-    //   router.push('/congratulations') // Redirect to congratulations page instead of coding
-    // } else {
-    //   // Get next question
-    //   const response = await mcqService.getNextQuestion()
-    //   if (response) {
-    //     addToast('Response recorded. Loading next question.', 'success')
-        
-    //     setTimeout(() => {
-    //       questions.value = [response]
-    //       selectedAnswers.value = []
-    //     }, 300)
-    //   }
-    // }
   } catch (err) {
     console.error('Error:', err)
     const errorMessage = err.response?.data?.message || 'Failed to process request'
@@ -223,10 +158,7 @@ const hasSelection = computed(() => selectedAnswers.value.length > 0)
 
 // Clear timer when component unmounts
 onUnmounted(() => {
-  if (timer) {
-    clearInterval(timer)
-    timer = null
-  }
+  stopTimer()
 })
 
 const handleChatMinimize = (minimized) => {
@@ -243,6 +175,16 @@ const handleChatMinimize = (minimized) => {
   height: calc(100vh - 84px);
   overflow: hidden;
   position: relative;
+}
+
+.timer-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 100;
 }
 
 .quiz-container {
@@ -370,6 +312,12 @@ const handleChatMinimize = (minimized) => {
 
   .quiz-main {
     margin-right: 0;
+  }
+  
+  .timer-header {
+    position: static;
+    justify-content: center;
+    margin-bottom: 1rem;
   }
 }
 

@@ -1,23 +1,14 @@
-# 🎉 Congratulations!
+Thank you for completing the assessment.
 
-You have successfully completed the MCQ section of the assessment.
+We appreciate the time and effort you put into each task. Your responses have been successfully recorded and will now be reviewed.
 
-## Next: Coding Section
+## What’s Next
 
-In the coding section, you will complete a series of programming tasks that will test your ability to solve real-world data science problems. You will:
+- We will reach out to you **after the submission deadline (May 16th)** with an update on your application status.
+- As part of the next steps, we’ll invite you for a **brief follow-up call** to discuss your approach, walk through your solutions, and get to know you better.
 
-- **Download and work with Jupyter notebooks** - Each task comes with its own notebook containing instructions and starter code.
-- **Analyze datasets and implement algorithms** - You'll analyze provided data and implement solutions to specified problems.
-- **Submit your solutions for each task** - Upload both your completed notebook and the output files generated.
+We look forward to connecting with you soon.
 
-## Preparation
+---
 
-Make sure you have:
-
-- A working Python environment with Jupyter installed
-- Familiarity with common data science libraries (Pandas, NumPy, etc.)
-- A quiet space where you can focus without interruptions
-
-## Time Management
-
-Each task has its own time limit, so manage your time efficiently. Read all instructions carefully before beginning implementation, and focus on completing the core requirements before adding additional optimizations. 
+*If you have any questions in the meantime, feel free to reach out to Vignesh Ravishankar.*

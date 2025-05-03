@@ -103,6 +103,35 @@ class LOG:
 #     completion_model_name = config.get("LLM", "COMPLETION_MODEL_NAME", fallback="KL-POC-GPT4-32k")
 #     completion_temperature = config.getint("LLM", "COMPLETION_TEMPERATURE", fallback=0)
 
-# Gitlab Configuration
-GITLAB_SERVER_URL = config.get("GITLAB", "SERVER_URL", fallback="https://gitlab.com")
-GITLAB_API_VERSION = config.get("GITLAB", "API_VERSION", fallback="v4")
+# Git Configuration
+GIT_PROVIDER = config.get("GIT", "GIT_PROVIDER", fallback="gitlab")
+
+# GitLab Configuration
+GITLAB_SERVER_URL = config.get("GITLAB", "GITLAB_SERVER_URL", fallback="https://gitlab.com")
+GITLAB_API_VERSION = config.get("GITLAB", "GITLAB_API_VERSION", fallback="v4")
+GITLAB_PROJECT_ID = config.get("GITLAB", "GITLAB_PROJECT_ID", fallback="12345")
+GITLAB_ACCESS_TOKEN = config.get("GITLAB", "GITLAB_ACCESS_TOKEN", fallback="your_gitlab_token")
+
+# GitHub Configuration
+GITHUB_API_URL = config.get("GITHUB", "GITHUB_API_URL", fallback="https://api.github.com")
+GITHUB_REPO = config.get("GITHUB", "GITHUB_REPO", fallback="project")
+GITHUB_ACCESS_TOKEN = config.get("GITHUB", "GITHUB_ACCESS_TOKEN",
+                                 fallback="")
+
+# Chat configurations
+LLM_PROVIDER = config.get("CHAT", "LLM_PROVIDER", fallback="anthropic")
+LLM_API_KEY = config.get("CHAT", "LLM_API_KEY", fallback="")
+LLM_MODEL = config.get("CHAT", "LLM_MODEL", fallback="claude-3-sonnet-20240229")
+MLFLOW_TRACKING_URI = config.get("CHAT", "MLFLOW_TRACKING_URI", fallback="http://localhost:5080")
+TEMPERATURE = config.getfloat("CHAT", "TEMPERATURE", fallback=0.7)
+
+# Azure OpenAI specific settings
+AZURE_API_VERSION = config.get("CHAT", "AZURE_API_VERSION", fallback="2024-02-15-preview")
+AZURE_API_BASE = config.get("CHAT", "AZURE_API_BASE", fallback="")
+AZURE_DEPLOYMENT_NAME = config.get("CHAT", "AZURE_DEPLOYMENT_NAME", fallback="")
+
+# MLflow configurations
+MLFLOW_ENABLE_AUTOLOG = config.getboolean("MLFLOW", "ENABLE_AUTOLOG", fallback=True)
+
+CODING_TASK_NOTEBOOK = config.get("ASSESSMENT", "CODING_TASK_NOTEBOOK",
+                                  fallback=os.path.join("assets", "responses"))

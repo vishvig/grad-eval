@@ -2,170 +2,247 @@
   <div class="main-content">
     <div class="coding-container">
       <div class="coding-card">
-        <div class="task-header">
-          <h2 class="task-number">Coding Task {{ currentTask }}</h2>
-          <div class="progress-indicator">
-            Task {{ currentTask }} of {{ totalTasks }}
+        <div v-if="isLoading" class="loading-state">
+          Loading task...
+        </div>
+        <template v-else>
+          <div class="task-header">
+            <h2 class="task-number">Coding Task {{ currentTask }}</h2>
           </div>
-        </div>
-        
-        <div class="task-description">
-          <p>{{ taskDescription }}</p>
-        </div>
-        
-        <div class="task-resources">
-          <button @click="downloadTaskFiles" class="download-button">
-            <span class="icon">📥</span>
-            Download Task Files
-          </button>
           
-          <div class="upload-section">
-            <div class="upload-item">
-              <label for="notebook-upload">Upload Jupyter Notebook:</label>
-              <div class="upload-control">
-                <input 
-                  type="file" 
-                  id="notebook-upload" 
-                  ref="notebookUpload"
-                  @change="handleNotebookUpload" 
-                  accept=".ipynb"
-                />
-                <div class="file-info">
-                  {{ notebookFile ? notebookFile.name : 'No file selected' }}
-                </div>
-              </div>
-            </div>
+          <div class="task-description" v-html="parsedTaskDescription"></div>
+          
+          <div class="task-resources">
+            <button @click="downloadTaskFiles" class="download-button">
+              <span class="icon">📥</span>
+              Download Task Files
+            </button>
             
-            <div class="upload-item">
-              <label for="output-upload">Upload Output File:</label>
-              <div class="upload-control">
-                <input 
-                  type="file" 
-                  id="output-upload" 
-                  ref="outputUpload"
-                  @change="handleOutputUpload"
-                  accept=".csv,.json,.txt"
-                />
-                <div class="file-info">
-                  {{ outputFile ? outputFile.name : 'No file selected' }}
+            <div class="upload-section">
+              <div class="upload-item">
+                <label for="notebook-upload">Upload Jupyter Notebook:</label>
+                <div class="upload-control">
+                  <input 
+                    type="file" 
+                    id="notebook-upload" 
+                    ref="notebookUpload"
+                    @change="handleNotebookUpload" 
+                    accept=".ipynb"
+                  />
+                  <div class="file-info">
+                    {{ notebookFile ? notebookFile.name : 'No file selected' }}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="upload-item">
+                <label for="output-upload">Upload Output File (Optional):</label>
+                <div class="upload-control">
+                  <input 
+                    type="file" 
+                    id="output-upload" 
+                    ref="outputUpload"
+                    @change="handleOutputUpload"
+                    accept=".csv,.txt,.pkl,.doc,.docx, .json, .pdf"
+                  />
+                  <div class="file-info">
+                    {{ outputFile ? outputFile.name : 'No file selected' }}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        
-        <div class="button-container">
-          <button 
-            @click="submitTask" 
-            class="submit-button"
-            :disabled="!canSubmit || isSubmitting"
-          >
-            {{ isSubmitting ? 'Submitting...' : 'Submit Task' }}
-          </button>
           
-          <button 
-            v-if="!isLastTask"
-            @click="goToNextTask" 
-            class="next-button"
-            :disabled="!taskCompleted"
-          >
-            Next Task <span class="arrow">→</span>
-          </button>
-          
-          <button 
-            v-else
-            @click="finishCodingSection" 
-            class="finish-button"
-            :disabled="!taskCompleted"
-          >
-            Finish <span class="arrow">→</span>
-          </button>
-
-          <!-- Cancel Button to go back to the Congratulations page -->
-          <button 
-            @click="goToCongratulations" 
-            class="cancel-button"
-          >
-            Cancel
-          </button>
-        </div>
+          <div class="button-container">
+            <button 
+              @click="goToNextTask" 
+              class="next-button"
+              :disabled="!canSubmit || isSubmitting"
+            >
+              {{ isSubmitting ? 'Submitting...' : 'Next Task' }} <span class="arrow">→</span>
+            </button>
+          </div>
+        </template>
       </div>
     </div>
 
-    <!-- Include the ChatInterface component -->
     <ChatInterface />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
-import ChatInterface from '@/components/ChatInterface.vue'; // Import the ChatInterface component
+import { useTimer } from '@/composables/useTimer'
+import { codingService } from '@/services/api'
+import ChatInterface from '@/components/ChatInterface.vue'
+import axios from 'axios'
+import { ROUTES } from '@/constants/api'
+import MarkdownIt from 'markdown-it'
 
+const md = new MarkdownIt()
 const router = useRouter()
 const { addToast } = useToast()
+const { 
+  formattedTime, 
+  initializeTimer, 
+  startTimer,
+  timerPaused
+} = useTimer()
 
-// Mock tasks data - in a real app, this would come from an API
-const tasks = [
-  {
-    id: 1,
-    description: 'In this task, you will analyze a dataset of customer transactions to identify patterns and anomalies. The dataset contains information about purchases, timestamps, and customer demographics. Your goal is to implement a clustering algorithm to segment customers based on their purchasing behavior.',
-    downloadUrl: '/api/tasks/1/download',
-    completed: false
-  },
-  {
-    id: 2,
-    description: 'For this task, you will build a predictive model to forecast sales for the next quarter based on historical data. The dataset includes sales figures, marketing spend, seasonality factors, and external economic indicators. You will need to preprocess the data, engineer relevant features, and implement a regression model.',
-    downloadUrl: '/api/tasks/2/download',
-    completed: false
-  },
-  {
-    id: 3,
-    description: 'In this final task, you will implement a natural language processing solution to classify customer reviews into positive, negative, or neutral sentiment. The dataset contains product reviews with text and star ratings. You will need to clean the text data, extract relevant features, and build a classification model.',
-    downloadUrl: '/api/tasks/3/download',
-    completed: false
+// Helper function to prepare common request data
+const prepareNextTaskData = () => {
+  const userId = localStorage.getItem('user_id')
+  const startEpoch = localStorage.getItem('assessment_start_time')
+  const currentEpoch = Math.floor(Date.now() / 1000)
+
+  return {
+    user_id: userId,
+    current_epoch: parseInt(currentEpoch),
+    start_epoch: parseInt(startEpoch)
   }
-]
+}
 
-const currentTask = ref(1)
-const totalTasks = tasks.length
+const emit = defineEmits(['time-update', 'timer-state-change'])
+
+// Watch the formatted time to emit time-update events
+watch(formattedTime, (newTime) => {
+  emit('time-update', newTime)
+})
+
+// Watch timer paused state to emit timer-state-change events
+watch(timerPaused, (isPaused) => {
+  emit('timer-state-change', isPaused)
+})
+
+const currentTask = ref(null)
 const notebookFile = ref(null)
 const outputFile = ref(null)
 const isSubmitting = ref(false)
-const taskCompleted = ref(false)
-
-const taskDescription = computed(() => {
-  const task = tasks.find(t => t.id === currentTask.value)
-  return task?.description || 'Task description not available.'
-})
-
-const isLastTask = computed(() => {
-  return currentTask.value === totalTasks
-})
+const taskDescription = ref('')
+const isLoading = ref(true)
 
 const canSubmit = computed(() => {
-  return notebookFile.value && outputFile.value
+  // Only require notebook file for submission
+  return notebookFile.value
+})
+
+const parsedTaskDescription = computed(() => {
+  return taskDescription.value ? md.render(taskDescription.value) : ''
 })
 
 const downloadTaskFiles = async () => {
   try {
-    // In a real app, this would download the task files based on the current task
-    // For demo purposes, just show a toast
-    addToast('Downloading task files...', 'info')
-    setTimeout(() => {
-      addToast('Task files downloaded successfully', 'success')
-    }, 1500)
+    // Prepare request data according to DownloadTaskFileRequest model
+    const requestData = {
+      user_id: localStorage.getItem('user_id'),
+      question_id: `coding_task_${currentTask.value}`
+    }
+
+    // Make the API call with proper headers and responseType
+    const response = await axios.post(
+      ROUTES.CODING.DOWNLOAD_TASK,
+      requestData,
+      {
+        responseType: 'blob' // Important for handling binary data
+      }
+    )
+
+    // Create a blob from the response data
+    const blob = new Blob([response.data], { type: 'application/zip' })
+    const url = window.URL.createObjectURL(blob)
+    
+    // Create a temporary link and trigger download
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `task_${currentTask.value}_files.zip`
+    document.body.appendChild(link)
+    link.click()
+    
+    // Cleanup
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    addToast('Files downloaded successfully', 'success')
   } catch (err) {
+    console.error('Failed to download task files:', err)
     addToast('Failed to download task files', 'error')
   }
 }
+
+onMounted(async () => {
+  try {
+    isLoading.value = true
+    let taskData
+    
+    // Check if we have stored task data from login
+    const storedTaskData = localStorage.getItem('current_task_data')
+    if (storedTaskData) {
+      taskData = JSON.parse(storedTaskData)
+      localStorage.removeItem('current_task_data') // Clear it after use
+    } else {
+      // Check if assessment was already started
+      const assessmentStarted = localStorage.getItem('assessment_status') === 'true'
+      if (assessmentStarted) {
+        // If already started, just get the next task
+        const formData = new FormData()
+        const jsonData = {
+          ...prepareNextTaskData(),
+          question_id: null
+        }
+        
+        const response = await axios.post(
+          ROUTES.CODING.NEXT_TASK,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            },
+            params: {
+              request_data: JSON.stringify(jsonData)
+            }
+          }
+        )
+        taskData = response.data
+      } else {
+        // If not started, start the assessment
+        taskData = await codingService.startCodingAssessment()
+        localStorage.setItem('assessment_status', 'true')
+      }
+    }
+    
+    // Only redirect if we explicitly get a null question_id
+    if (!taskData || !taskData.question_id) {
+      addToast('No tasks available', 'info')
+      router.push('/congratulations')
+      return
+    }
+
+    // Store question_id in sessionStorage for chat
+    sessionStorage.setItem('question_id', taskData.question_id)
+
+    // Update the component with the task data
+    currentTask.value = taskData.question_id.replace('coding_task_', '')
+    taskDescription.value = taskData.body || '' // Use body instead of description
+    
+    // Initialize and start the timer
+    initializeTimer()
+    startTimer()
+  } catch (err) {
+    console.error('Failed to start coding assessment:', err)
+    addToast('Failed to start coding assessment. Please try again.', 'error')
+    router.push('/congratulations') // Redirect on error
+  } finally {
+    isLoading.value = false
+  }
+})
 
 const handleNotebookUpload = (event) => {
   const file = event.target.files[0]
   if (file) {
     notebookFile.value = file
-    addToast(`Notebook file selected: ${file.name}`, 'info')
+    addToast(`Notebook file selected: ${file.name}`, 'success')
   }
 }
 
@@ -173,76 +250,61 @@ const handleOutputUpload = (event) => {
   const file = event.target.files[0]
   if (file) {
     outputFile.value = file
-    addToast(`Output file selected: ${file.name}`, 'info')
+    addToast(`Output file selected: ${file.name}`, 'success')
   }
 }
 
-const submitTask = async () => {
+const goToNextTask = async () => {
   if (!canSubmit.value) return
   
+  isLoading.value = true
   isSubmitting.value = true
   try {
-    // In a real app, this would upload the files to the server
-    // const formData = new FormData()
-    // formData.append('notebook', notebookFile.value)
-    // formData.append('output', outputFile.value)
-    // const response = await apiService.submitTaskFiles(currentTask.value, formData)
+    const taskData = await codingService.nextTask({
+      notebook: notebookFile.value,
+      output: outputFile.value || null, // Make output optional
+      question_id: `coding_task_${currentTask.value}`
+    })
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // Only redirect if we explicitly get a null question_id
+    if (!taskData || !taskData.question_id) {
+      addToast('All tasks completed!', 'success')
+      router.push('/congratulations')
+      return
+    }
     
-    // Update task status
-    tasks[currentTask.value - 1].completed = true
-    taskCompleted.value = true
+    // Store the new question_id in sessionStorage for chat
+    sessionStorage.setItem('question_id', taskData.question_id)
     
-    addToast('Task submitted successfully', 'success')
-  } catch (err) {
-    addToast('Failed to submit task', 'error')
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-const goToNextTask = () => {
-  if (currentTask.value < totalTasks) {
-    currentTask.value += 1
-    notebookFile.value = null
-    outputFile.value = null
-    taskCompleted.value = tasks[currentTask.value - 1].completed
+    // Update task data
+    currentTask.value = taskData.question_id.replace('coding_task_', '')
+    taskDescription.value = taskData.body || '' // Use body instead of description
     
     // Reset file inputs
+    notebookFile.value = null
+    outputFile.value = null
     if (document.getElementById('notebook-upload')) {
       document.getElementById('notebook-upload').value = ''
     }
     if (document.getElementById('output-upload')) {
       document.getElementById('output-upload').value = ''
     }
+
+    // Force chat reload by removing and setting the trigger with a small delay
+    sessionStorage.removeItem('chat_reload_trigger')
+    setTimeout(() => {
+      sessionStorage.setItem('chat_reload_trigger', Date.now().toString())
+    }, 100)
+    
+    addToast('Solution submitted successfully', 'success')
+  } catch (err) {
+    console.error('Failed to move to next task:', err)
+    addToast('Failed to submit solution. Please try again.', 'error')
+  } finally {
+    isSubmitting.value = false
+    isLoading.value = false
   }
 }
-
-const finishCodingSection = () => {
-  addToast('Coding section completed!', 'success')
-  // In a real app, you might redirect to a completion page
-  router.push('/')
-}
-
-const goToCongratulations = () => {
-  router.push('/congratulations'); // Navigate to the congratulations page
-}
-
-onMounted(() => {
-  // Check if there's a task number in the URL
-  const taskParam = new URLSearchParams(window.location.search).get('task')
-  if (taskParam && !isNaN(parseInt(taskParam))) {
-    const taskNumber = parseInt(taskParam)
-    if (taskNumber >= 1 && taskNumber <= totalTasks) {
-      currentTask.value = taskNumber
-    }
-  }
-  
-  // Check if the current task is already completed
-  taskCompleted.value = tasks[currentTask.value - 1].completed
-})
 </script>
 
 <style lang="scss" scoped>
@@ -280,16 +342,12 @@ onMounted(() => {
   margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 1rem;
+  position: relative;
   
   .task-number {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--color-primary);
-  }
-  
-  .progress-indicator {
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
   }
 }
 
@@ -297,8 +355,37 @@ onMounted(() => {
   margin-bottom: 2rem;
   line-height: 1.6;
   
-  p {
+  :deep(p) {
     margin-bottom: 1rem;
+  }
+
+  :deep(pre) {
+    background-color: var(--color-background);
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+
+  :deep(code) {
+    font-family: monospace;
+    background-color: var(--color-background);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+  }
+
+  :deep(ul), :deep(ol) {
+    margin: 1rem 0;
+    padding-left: 2rem;
+  }
+
+  :deep(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  :deep(h1), :deep(h2), :deep(h3), :deep(h4), :deep(h5), :deep(h6) {
+    margin: 1.5rem 0 1rem;
+    color: var(--color-text);
   }
 }
 
@@ -374,58 +461,35 @@ onMounted(() => {
 
 .button-container {
   display: flex;
-  justify-content: space-between;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--color-border);
 }
 
-.submit-button, .next-button, .finish-button, .cancel-button {
+.next-button {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.submit-button {
-  background-color: var(--color-success);
-  color: white;
-  border: none;
-  
-  &:hover:not(:disabled) {
-    background-color: var(--color-success-dark);
-  }
-}
-
-.next-button, .finish-button {
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  display: flex;
-  align-items: center;
-  
   &:hover:not(:disabled) {
     background-color: var(--color-primary-dark);
   }
   
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
   .arrow {
     margin-left: 0.5rem;
-  }
-}
-
-.cancel-button {
-  background-color: var(--color-danger);
-  color: white;
-  border: none;
-  
-  &:hover {
-    background-color: var(--color-danger-dark);
   }
 }
 
@@ -435,8 +499,23 @@ onMounted(() => {
     gap: 1rem;
   }
   
-  .submit-button, .next-button, .finish-button, .cancel-button {
+  .next-button {
     width: 100%;
   }
+  
+  .task-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  font-size: 1.2rem;
+  color: var(--color-text-secondary);
 }
 </style> 

@@ -5,7 +5,7 @@
     </div>
     <div class="auth-card">
       <div class="auth-header">
-        <h1>Grad Evaluator</h1>
+        <h1>ThinkGrade</h1>
         <p>Please enter your credentials to continue</p>
       </div>
       
@@ -145,14 +145,33 @@ const handleLogin = async () => {
   errors.value = {}
   
   try {
-    await authService.login({
+    const response = await authService.login({
       fullName: fullName.value,
       token: token.value,
       captchaId: captchaId.value,
       captchaResponse: captchaResponse.value
     })
-    addToast('Authentication successful', 'success')
-    router.push('/introduction')
+
+    // Check if authentication was successful
+    if (response.status === 'success' && response.body.authenticated) {
+      addToast('Authentication successful', 'success')
+
+      // Store user ID in localStorage
+      localStorage.setItem('user_id', response.body.user_id)
+
+      // Check assessment status and redirect accordingly
+      if (response.body.assessment_status) {
+        // Store assessment start time if it exists
+        if (response.body.assessment_start_time) {
+          localStorage.setItem('assessment_start_time', response.body.assessment_start_time.toString())
+        }
+        router.push('/coding')
+      } else {
+        router.push('/introduction')
+      }
+    } else {
+      throw new Error('Authentication failed')
+    }
   } catch (err) {
     const errorMessage = err.response?.data?.message || 'Invalid credentials'
     if (err.response?.status === 401) {
