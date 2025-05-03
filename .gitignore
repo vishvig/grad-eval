@@ -189,3 +189,7 @@ packages/template-compiler/browser.js
 .vscode
 temp
 types/v3-generated.d.ts
+
+# Configurations
+*.conf
+*.env

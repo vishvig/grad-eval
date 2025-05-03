@@ -1,0 +1,36 @@
+@import './variables.scss';
+
+@mixin base-container {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@mixin card {
+  @include base-container;
+  background: $white;
+  box-shadow: $shadow-md;
+  border-radius: $border-radius-lg;
+}
+
+@mixin responsive-text($min, $max) {
+  font-size: clamp($min, 3vw, $max);
+}
+
+@mixin responsive-spacing($min, $max) {
+  padding: clamp($min, 4vw, $max);
+}
+
+@mixin hover-effect {
+  &:hover:not(.selected) {
+    background: $border-light;
+    transform: translateY(-2px);
+    box-shadow: $shadow-sm;
+  }
+}
+
+@mixin touch-hover {
+  &:hover:not(.selected) {
+    transform: none;
+    background: $background-light;
+  }
+} 
